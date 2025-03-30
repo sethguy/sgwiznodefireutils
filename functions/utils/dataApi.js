@@ -1,7 +1,29 @@
- class DataApi {
-  constructor(databaseKey, db) {
+class DataApi {
+  constructor(databaseKey, db,options ={}) {
+    const { defaultProps = {}, extentions = {} } = options;
+    this.defaultProps = defaultProps;
     this.databaseKey = databaseKey;
     this.db = db;
+    this.initExtentions(extentions);
+  }
+  initExtentions(extentions) {
+    Object.keys(extentions).map((extKey) => {
+      this[extKey] = async (...args) => await extentions[extKey](this, ...args);
+    });
+  }
+  buildNew() {
+    const stamp = new Date()
+   
+     const offerPack = {
+      title: "",
+      tags: [],
+      // createdStamp: stamp.valueOf(),
+      // createdIso :stamp.toISOString,
+      // updateStamp: stamp.valueOf(),
+      ...this.defaultProps,
+    };
+
+    return offerPack;
   }
   get(id) {
     return this.db.getData(this.databaseKey, id);
@@ -11,18 +33,17 @@
     return this.db.queryData(this.databaseKey, queryProps);
   }
 
-  create(dataPack,id) {
+  create(dataPack) {
     const stamp = new Date()
-    
     dataPack.createdStamp = stamp.valueOf()
-    dataPack.isoStamp = stamp.toISOString()
-    return this.db.createData(this.databaseKey, dataPack,id);
+    dataPack.createdIso = stamp.toISOString()
+    return this.db.createData(this.databaseKey, dataPack);
   }
 
   update(id, dataUpdate) {
     const stamp = new Date()
     dataUpdate.updateStamp = stamp.valueOf()
-    dataUpdate.isoStamp = stamp.toISOString()
+    dataUpdate.updateIso = stamp.toISOString()
     return this.db.updateData(this.databaseKey, id, dataUpdate);
   }
 
