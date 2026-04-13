@@ -17,4 +17,4 @@ const getAuthUserProfile = async (authUserId) => {
   }
 };
 
-exports.getAuthUserProfile = getAuthUserProfile;
+module.exports = { getAuthUserProfile };
