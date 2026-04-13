@@ -1,9 +1,46 @@
-class DataApi {
-  constructor(databaseKey, db,options ={}) {
+
+ const handleStamps = (data, onStamp = () => {}) => {
+  try {
+    if (Array.isArray(data)) {
+      const batchPack = data.map((batchItem) => {
+        const stampedItem = onStamp(batchItem);
+
+        return {
+          ...stampedItem,
+        };
+      });
+
+      return batchPack;
+    } else {
+      const stampedItem = onStamp(data);
+
+      return stampedItem;
+    }
+  } catch (error) {
+    console.log("🚀 ~ handleStamps ~ error:", error);
+
+    return data;
+  }
+};
+
+ const stampData = (data = {}, key = "update") => {
+  const date = new Date();
+  const stamp = date.valueOf();
+  const iso = date.toISOString();
+
+  data[`${key}Stamp`] = stamp;
+  data[`${key}Iso`] = iso;
+
+  return data;
+};
+
+
+ class DataApi {
+  constructor(databaseKey, db, options = {}) {
     const { defaultProps = {}, extentions = {} } = options;
-    this.defaultProps = defaultProps;
     this.databaseKey = databaseKey;
     this.db = db;
+    this.defaultProps = defaultProps;
     this.initExtentions(extentions);
   }
   initExtentions(extentions) {
@@ -12,9 +49,9 @@ class DataApi {
     });
   }
   buildNew() {
-    const stamp = new Date()
-   
-     const offerPack = {
+    const stamp = new Date();
+
+    const offerPack = {
       title: "",
       tags: [],
       // createdStamp: stamp.valueOf(),
@@ -25,47 +62,57 @@ class DataApi {
 
     return offerPack;
   }
-  get(id) {
-    return this.db.getData(this.databaseKey, id);
+  get(id, options = {}) {
+    return this.db.getData(this.databaseKey, id, options);
   }
-
-  query(queryProps) {
-    return this.db.queryData(this.databaseKey, queryProps);
-  }
-
-  create(dataPack) {
-    const stamp = new Date()
-    dataPack.createdStamp = stamp.valueOf()
-    dataPack.createdIso = stamp.toISOString()
-    return this.db.createData(this.databaseKey, dataPack);
-  }
-
-  update(id, dataUpdate) {
-    const stamp = new Date()
-    dataUpdate.updateStamp = stamp.valueOf()
-    dataUpdate.updateIso = stamp.toISOString()
-    return this.db.updateData(this.databaseKey, id, dataUpdate);
-  }
-
-  delete(id) {
-    this.db.removeData(this.databaseKey, id);
-  }
-
-  async getByQueryKey(keyValue, queryKey) {
-    const [found] = await this.db.queryData(this.databaseKey, [
-      {
-        actionKey: "where",
-        field: queryKey,
-        operator: "==",
-        value: keyValue,
-      },
-    ]);
+  async getByQueryKey(keyValue, queryKey, options = {}) {
+    const [found] = await this.db.queryData(
+      this.databaseKey,
+      [
+        {
+          actionKey: "where",
+          field: queryKey,
+          operator: "==",
+          value: keyValue,
+        },
+      ],
+      options,
+    );
 
     return found;
   }
+  query(queryProps, options = {}) {
+    return this.db.queryData(this.databaseKey, queryProps, options);
+  }
+
+  create(dataPack, options = {}) {
+
+    const stampedData = handleStamps(dataPack, (dataItem) => {
+      const stampedItem = stampData(stampData(dataItem, "created"), "update");
+      return stampedItem;
+    });
+
+    return this.db.createData(this.databaseKey, stampedData, options);
+  }
+
+  update(id, dataUpdate = {}, options = {}) {
+
+    const stampedUpdate = handleStamps(dataUpdate, (dataItem) => {
+      const stampedItem = stampData(dataItem, "update");
+      return stampedItem;
+    });
+
+    return this.db.updateData(this.databaseKey, id, stampedUpdate, options);
+  }
+
+  delete(id, options = {}) {
+    this.db.removeData(this.databaseKey, id, options);
+  }
+  onSnapshot(id, onUpdate = () => {}, options = {}) {
+    const { onSnapshot = () => {} } = this.db;
+    return onSnapshot(this.databaseKey, id, onUpdate, options);
+  }
 }
 
 
-module.exports = {
-  DataApi
-}
+module.exports = {DataApi}
