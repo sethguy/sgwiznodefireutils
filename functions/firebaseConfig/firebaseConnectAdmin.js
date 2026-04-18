@@ -1,3 +1,4 @@
+const { buildBatchUpdate } = require("./buildBatchUpdate");
 const { getDocRef, getCollectionRef } = require("./getCollectionRef");
 
 const initFirebaseConnectAdmin = ({ fireStoreDb, Filter }) => {
@@ -29,6 +30,12 @@ const initFirebaseConnectAdmin = ({ fireStoreDb, Filter }) => {
     },
     updateData: async (table, id, data, options = {}) => {
       const { subTable, subDocId, batch } = options;
+
+      if (batch) {
+        const batchResult = await buildBatchUpdate(fireStoreDb,table, id, data, options);
+        return batchResult;
+      }
+
       const docRef = getDocRef(fireStoreDb, table, id, subTable, subDocId);
 
       await docRef.update(data);
